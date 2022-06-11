@@ -9,7 +9,7 @@ on:
         required: true
       DOCKER_HUB_ACCESS_TOKEN:
         required: true
-      GITHUB_TOKEN:
+      GITHUB_ACCESS_TOKEN:
         required: true
 
 env:

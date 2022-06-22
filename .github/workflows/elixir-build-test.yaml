@@ -69,7 +69,7 @@ jobs:
         run: |
           mix test
       - name: Test Coverage
-        if: ${{ flag_test_coverage }}
+        if: ${{ inputs.flag_test_coverage }}
         run: mix test --cover
       - name: Stop containers
         if: always() && ${{ inputs.test_docker_compose_path != '' }}

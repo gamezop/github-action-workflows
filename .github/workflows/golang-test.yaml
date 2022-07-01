@@ -14,9 +14,9 @@ on:
         type: string
     secrets:
       DOCKER_HUB_USERNAME:
-        required: true
+        required: false
       DOCKER_HUB_ACCESS_TOKEN:
-        required: true
+        required: false
       GITHUB_ACCESS_TOKEN:
         required: true
 

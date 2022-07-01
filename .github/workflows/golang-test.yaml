@@ -3,7 +3,8 @@ on:
     inputs:
       go_version:
         type: string
-        required: true
+        required: false
+        default: 1.17
       run_static_check:
         type: boolean
         required: false

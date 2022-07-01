@@ -72,6 +72,6 @@ jobs:
         if: ${{ inputs.flag_test_coverage }}
         run: mix test --cover
       - name: Stop containers
-        if: always() && ${{ inputs.test_docker_compose_path != '' }}
+        if: ${{ (failure() || success()) &&  inputs.test_docker_compose_path != '' }}
         run: |
           docker-compose -f "${{ inputs.test_docker_compose_path }}" down

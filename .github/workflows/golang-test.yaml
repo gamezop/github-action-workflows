@@ -1,6 +1,22 @@
 on:
   workflow_call:
+    inputs:
+      go_version:
+        type: string
+        required: false
+        default: 1.17
+      run_static_check:
+        type: boolean
+        required: false
+        default: true
+      test_docker_compose_path:
+        required: false
+        type: string
     secrets:
+      DOCKER_HUB_USERNAME:
+        required: false
+      DOCKER_HUB_ACCESS_TOKEN:
+        required: false
       GITHUB_ACCESS_TOKEN:
         required: true
 
@@ -19,12 +35,23 @@ jobs:
       - name: setup go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: ${{ inputs.go_version }}
       - name: checkout ${{ github.repository }}
         uses: actions/checkout@v2
         with:
           fetch-depth: 1
           path: ./go/src/github.com/${{ github.repository }}
+      - name: Log in to Docker Hub
+        if: ${{ inputs.test_docker_compose_path != '' }}
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Stackup
+        if: ${{ inputs.test_docker_compose_path != '' }}
+        run: |
+          docker-compose -f "${{ inputs.test_docker_compose_path }}" up -d --build
+        shell: bash
       - name: set up cache env paths
         id: go-cache-paths
         run: |
@@ -64,8 +91,13 @@ jobs:
       # - name: revive
       #   uses: docker://morphy/revive-action:v2
       - name: static checker
+        if: ${{ inputs.run_static_check }}
         run: |
           staticcheck ./...
       - name: make test
         run: |
           make test
+      - name: Stop containers
+        if: ${{ (failure() || success()) &&  inputs.test_docker_compose_path != '' }}
+        run: |
+          docker-compose -f "${{ inputs.test_docker_compose_path }}" down

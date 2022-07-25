@@ -51,13 +51,13 @@ jobs:
         id: mix-cache
         with:
           path: deps
-          key: ${{ MIX_ENV }}-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
       - name: Retrieve Mix build Cache
         uses: actions/cache@v3
         id: build-cache
         with:
           path: _build/test/
-          key: ${{ MIX_ENV }}-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
       - name: Get dependencies
         if: steps.mix-cache.outputs.cache-hit != 'true'
         run: |

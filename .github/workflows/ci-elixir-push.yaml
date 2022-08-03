@@ -1,0 +1,83 @@
+on:
+  workflow_call:
+    inputs:
+      mix-env:
+        required: true
+        type: string
+      mix-app-name:
+        required: true
+        type: string
+      img-name:
+        required: true
+        type: string
+      github-run-id:
+        required: true
+        type: string
+      path-docker-file:
+        required: true
+        type: string
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_ACCESS_TOKEN:
+        required: true
+      GO_MODULES_GITHUB_TOKEN:
+        required: true
+
+env:
+  MIX_ENV: ${{ inputs.mix-env }}
+  GITHUB_ACCESS_TOKEN: ${{ secrets.GO_MODULES_GITHUB_TOKEN }}
+
+jobs:
+  push_img:
+    name: Push ${{ inputs.mix-env }} ${{ inputs.mix-app-name }} to Docker Hub
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        elixir: [1.13.4]
+        otp: [24.0]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: ${{matrix.elixir}} # Define the elixir version [required]
+          otp-version: ${{matrix.otp}} # Define the OTP version [required]
+          experimental-otp: true
+      - name: Retrieve Mix dependencies Cache
+        uses: actions/cache@v3
+        id: mix-cache
+        with:
+          path: deps
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}/config/{1}.exs', github.workspace, MIX_ENV)) }}-v8
+      - name: Retrieve Mix build Cache
+        uses: actions/cache@v3
+        id: build-cache
+        with:
+          path: _build/$MIX_ENV/
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}/config/{1}.exs', github.workspace, MIX_ENV)) }}-v8
+      - name: Get dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - name: Install dependencies
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: |
+          mix deps.compile
+      - name: Reconcile deps
+        run: |
+          mix deps.get
+      - name: Push
+        # we pass --build-arg flags using mix task too
+        run: |
+          mix release.image_build \
+              --img-name ${{ inputs.img-name }} \
+              --github-run-id ${{ inputs.github-run-id }} \
+              --path-docker-file ${{ inputs.path-docker-file }}

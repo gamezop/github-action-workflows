@@ -23,6 +23,10 @@ on:
         required: true
       GO_MODULES_GITHUB_TOKEN:
         required: true
+    outputs:
+      app-tag:
+        description: "Version tag of the app"
+        value: ${{ jobs.push_img.outputs.apptag }}
 
 env:
   MIX_ENV: ${{ inputs.mix-env }}
@@ -36,7 +40,10 @@ jobs:
       matrix:
         elixir: [1.13.4]
         otp: [24.0]
+    outputs:
+      apptag: ${{ steps.pushing-img.outputs.app-tag }}
     steps:
+      - id: pushing-img
       - uses: actions/checkout@v2
       - name: Log in to Docker Hub
         uses: docker/login-action@v1
@@ -74,8 +81,13 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
+      - name: DUMMY MIX
+        run: echo "APP_VERSION_TAG=$(mix get_tag)"
+      - name: Set tag env
+        run: echo "GITHUB_IMAGE_TAG=$(mix get_tag)" >> $GITHUB_ENV
+      - name: Set output
+        run: echo "::set-output name=app-tag::${{ env.GITHUB_IMAGE_TAG }}"
       - name: Push
-        # we pass --build-arg flags using mix task too
         run: |
           mix release.image_build \
               --img-name ${{ inputs.img-name }} \

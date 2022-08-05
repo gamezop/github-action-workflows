@@ -1,0 +1,102 @@
+on:
+  workflow_call:
+    inputs:
+      test_docker_compose_path:
+        required: false
+        type: string
+      flag_test_coverage:
+        required: false
+        type: boolean
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_ACCESS_TOKEN:
+        required: true
+      GITHUB_ACCESS_TOKEN:
+        required: true
+      AWS_ACCESS_KEY_ID:
+        required: true
+      AWS_SECRET_ACCESS_KEY:
+        required: true
+
+env:
+  MIX_ENV: test
+
+jobs:
+  build_test:
+    name: Build and test
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        elixir: [1.13.4]
+        otp: [24.0]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Log in to Docker Hub
+        if: ${{ inputs.test_docker_compose_path != '' }}
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Stackup
+        if: ${{ inputs.test_docker_compose_path != '' }}
+        run: |
+          docker-compose -f "${{ inputs.test_docker_compose_path }}" up -d --build
+        shell: bash
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: ${{matrix.elixir}} # Define the elixir version [required]
+          otp-version: ${{matrix.otp}} # Define the OTP version [required]
+          experimental-otp: true
+      - name: Retrieve Mix dependencies Cache
+        uses: actions/cache@v3
+        id: mix-cache
+        with:
+          path: deps
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
+      - name: Retrieve Mix build Cache
+        uses: actions/cache@v3
+        id: build-cache
+        with:
+          path: _build/test/
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/test.exs')) }}-v8
+      - name: Get dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+      - name: Install dependencies
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: |
+          mix deps.compile
+      - name: Reconcile deps
+        run: |
+          mix deps.get
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+      - name: Check Formatting
+        run: mix format --check-formatted
+      - name: Check Credo
+        run: mix credo
+      - name: Run Tests
+        run: |
+          mix test
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
+      - name: Test Coverage
+        if: ${{ inputs.flag_test_coverage }}
+        run: mix test --cover
+      - name: Stop containers
+        if: ${{ (failure() || success()) &&  inputs.test_docker_compose_path != '' }}
+        run: |
+          docker-compose -f "${{ inputs.test_docker_compose_path }}" down

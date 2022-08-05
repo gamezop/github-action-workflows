@@ -83,8 +83,10 @@ jobs:
           GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
       - name: Check Formatting
         run: mix format --check-formatted
-      - name: Check Credo
-        run: mix credo
+      # - name: Check Credo
+      #   run: mix credo
+      #   env:
+      #     GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
       - name: Run Tests
         run: |
           mix test

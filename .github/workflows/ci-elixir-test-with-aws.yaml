@@ -72,6 +72,7 @@ jobs:
       - name: Install dependencies
         if: steps.build-cache.outputs.cache-hit != 'true'
         run: |
+          mix deps.get
           mix deps.compile
         env:
           GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}

@@ -7,6 +7,10 @@ on:
       flag_test_coverage:
         required: false
         type: boolean
+      use_localstack:
+        required: false
+        default: false
+        type: boolean 
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -32,7 +36,7 @@ jobs:
         elixir: [1.13.4]
         otp: [24.0]
     services:
-      if: ${{ secrets.AWS_ACCESS_KEY_ID != null }}
+      if: ${{ inputs.use_localstack }}
       localstack:
         image: localstack/localstack:latest
         env:

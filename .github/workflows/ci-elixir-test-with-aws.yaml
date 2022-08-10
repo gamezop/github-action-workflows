@@ -19,14 +19,17 @@ on:
       AWS_SECRET_ACCESS_KEY:
         required: true
 
-
 env:
   MIX_ENV: test
 
 jobs:
-  localstack:
-    name: Start localstack
-    runs-on: ubuntu-latest
+  build_test:
+    name: Build and test
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        elixir: [1.13.4]
+        otp: [24.0]
     services:
       localstack:
         image: localstack/localstack:latest
@@ -38,15 +41,6 @@ jobs:
         ports:
           - 4566:4566
           - 4571:4571
-
-  build_test:
-    name: Build and test
-    needs: localstack
-    runs-on: ubuntu-20.04
-    strategy:
-      matrix:
-        elixir: [1.13.4]
-        otp: [24.0]
     steps:
       - uses: actions/checkout@v2
       - name: Log in to Docker Hub

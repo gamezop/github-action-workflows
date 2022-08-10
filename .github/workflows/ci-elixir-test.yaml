@@ -14,6 +14,10 @@ on:
         required: true
       GITHUB_ACCESS_TOKEN:
         required: true
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
 
 env:
   MIX_ENV: test
@@ -73,14 +77,25 @@ jobs:
           mix deps.get
       - name: Check Formatting
         run: mix format --check-formatted
-      - name: Check Credo
-        run: mix credo
+      # - name: Setting AWS credentials if any
+      #   if: ${{ secrets.AWS_ACCESS_KEY_ID != null}}
+      #   run: |
+      #     echo "AWS_ACCESS_KEY_ID=$(secrets.AWS_ACCESS_KEY_ID)" >> $AWS_ACCESS_KEY_ID
+      #     echo "AWS_SECRET_ACCESS_KEY=$(secrets.AWS_SECRET_ACCESS_KEY)" >> $AWS_SECRET_ACCESS_KEY
       - name: Run Tests
         run: |
           mix test
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
       - name: Test Coverage
         if: ${{ inputs.flag_test_coverage }}
         run: mix test --cover
+        env:
+          GITHUB_ACCESS_TOKEN: ${{ secrets.GITHUB_ACCESS_TOKEN }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY}}
       - name: Stop containers
         if: ${{ (failure() || success()) &&  inputs.test_docker_compose_path != '' }}
         run: |

@@ -7,10 +7,6 @@ on:
       flag_test_coverage:
         required: false
         type: boolean
-      use_localstack:
-        required: false
-        default: false
-        type: boolean 
     secrets:
       DOCKER_HUB_USERNAME:
         required: true

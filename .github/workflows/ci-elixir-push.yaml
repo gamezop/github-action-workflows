@@ -34,7 +34,7 @@ env:
 
 jobs:
   push_prd_img:
-    name: push_prd_imd
+    name: push_prd_img
     if: startsWith(github.event.ref, 'refs/tags/')
     runs-on: ubuntu-20.04
     strategy:
@@ -84,7 +84,9 @@ jobs:
         run: |
           mix deps.get
       - name: Set tag env
-        run: echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
+        run: |
+          mix get_tag
+          echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
       - name: Setting app version
         run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
@@ -97,7 +99,7 @@ jobs:
               --git-tag $RELEASE_VERSION \
               --release
   push_dev_img:
-    name: push_dev_imd
+    name: push_dev_img
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -143,8 +145,6 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
-      - name: Flush console.logs
-        run: echo "DISCARD_LOGS=$(mix get_tag)"
       - name: Set tag env
         run: |
           mix get_tag

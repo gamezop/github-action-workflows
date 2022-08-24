@@ -93,9 +93,9 @@ jobs:
         # we pass --build-arg flags using mix task too
         run: |
           mix release.image_build \
-              --img-name opinion \
-              --github-run-id $GITHUB_RUN_ID \
-              --path-docker-file "./dockerfiles/Dockerfile" \
+              --img-name ${{ inputs.img-name }} \
+              --github-run-id ${{ github.run_id }} \
+              --path-docker-file ${{ inputs.path-docker-file }} \
               --git-tag $RELEASE_VERSION \
               --release
   push_dev_img:
@@ -155,5 +155,5 @@ jobs:
         run: |
           mix release.image_build \
               --img-name ${{ inputs.img-name }} \
-              --github-run-id ${{ inputs.github-run-id }} \
+              --github-run-id ${{ github.run_id }} \
               --path-docker-file ${{ inputs.path-docker-file }}

@@ -10,9 +10,6 @@ on:
       img-name:
         required: true
         type: string
-      github-run-id:
-        required: true
-        type: string
       path-docker-file:
         required: true
         type: string
@@ -26,7 +23,7 @@ on:
     outputs:
       app-version:
         description: "Version the elixir app"
-        value: ${{ jobs.push_img.outputs.app-version }}
+        value: ${{ jobs.push_dev_img.outputs.app-version }}
 
 env:
   MIX_ENV: ${{ inputs.mix-env }}
@@ -83,13 +80,6 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
-      - name: Set tag env
-        run: |
-          mix get_tag
-          echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - id: pushing-img
-        name: Setting app version
-        run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         # we pass --build-arg flags using mix task too
         run: |

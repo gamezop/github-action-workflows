@@ -24,16 +24,79 @@ on:
       GO_MODULES_GITHUB_TOKEN:
         required: true
     outputs:
-      app-tag:
-        description: "Version tag of the app"
-        value: ${{ jobs.push_img.outputs.apptag }}
+      app-version:
+        description: "Version the elixir app"
+        value: ${{ jobs.push_img.outputs.app-version }}
 
 env:
   MIX_ENV: ${{ inputs.mix-env }}
   GITHUB_ACCESS_TOKEN: ${{ secrets.GO_MODULES_GITHUB_TOKEN }}
 
 jobs:
-  push_img:
+  push_prd_img:
+    if: startsWith(github.event.ref, 'refs/tags/')
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        elixir: [1.13.4]
+        otp: [24.0]
+    outputs:
+      app-version: ${{ steps.pushing-img.outputs.app-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+      - name: Set env
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set up Elixir
+        uses: actions/setup-elixir@v1
+        with:
+          elixir-version: ${{matrix.elixir}} # Define the elixir version [required]
+          otp-version: ${{matrix.otp}} # Define the OTP version [required]
+          experimental-otp: true
+      - name: Retrieve Mix dependencies Cache
+        uses: actions/cache@v3
+        id: mix-cache
+        with:
+          path: deps
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/prod.exs')) }}-v8
+      - name: Retrieve Mix build Cache
+        uses: actions/cache@v3
+        id: build-cache
+        with:
+          path: _build/prod/
+          key: $MIX_ENV-${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-build-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}-${{ hashFiles(format('{0}{1}', github.workspace, '/config/prod.exs')) }}-v8
+      - name: Get dependencies
+        if: steps.mix-cache.outputs.cache-hit != 'true'
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+      - name: Install dependencies
+        if: steps.build-cache.outputs.cache-hit != 'true'
+        run: |
+          mix deps.compile
+      - name: Reconcile deps
+        run: |
+          mix deps.get
+      - name: Set tag env
+        run: echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
+      - id: setting app version
+        name: Set output
+        run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
+      - name: Push
+        # we pass --build-arg flags using mix task too
+        run: |
+          mix release.image_build \
+              --img-name opinion \
+              --github-run-id $GITHUB_RUN_ID \
+              --path-docker-file "./dockerfiles/Dockerfile" \
+              --git-tag $RELEASE_VERSION \
+              --release
+  push_dev_img:
     name: Push ${{ inputs.mix-env }} ${{ inputs.mix-app-name }} to Docker Hub
     runs-on: ubuntu-20.04
     strategy:
@@ -41,7 +104,7 @@ jobs:
         elixir: [1.13.4]
         otp: [24.0]
     outputs:
-      apptag: ${{ steps.pushing-img.outputs.app-tag }}
+      app-version: ${{ steps.pushing-img.outputs.app-version }}
     steps:
       - uses: actions/checkout@v2
       - name: Log in to Docker Hub
@@ -80,13 +143,13 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
-      - name: DUMMY MIX
-        run: echo "APP_VERSION_TAG=$(mix get_tag)"
       - name: Set tag env
-        run: echo "GITHUB_IMAGE_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - id: pushing-img
+        run: |
+          mix get_tag
+          echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
+      - id: Setting app version
         name: Set output
-        run: echo "::set-output name=app-tag::${{ env.GITHUB_IMAGE_TAG }}"
+        run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         run: |
           mix release.image_build \

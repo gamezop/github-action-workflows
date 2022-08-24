@@ -34,6 +34,7 @@ env:
 
 jobs:
   push_prd_img:
+    name: push_prd_imd
     if: startsWith(github.event.ref, 'refs/tags/')
     runs-on: ubuntu-20.04
     strategy:
@@ -97,7 +98,7 @@ jobs:
               --git-tag $RELEASE_VERSION \
               --release
   push_dev_img:
-    name: Push ${{ inputs.mix-env }} ${{ inputs.mix-app-name }} to Docker Hub
+    name: push_dev_imd
     runs-on: ubuntu-20.04
     strategy:
       matrix:
@@ -147,8 +148,7 @@ jobs:
         run: |
           mix get_tag
           echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - id: Setting app version
-        name: Set output
+      - name: Setting app version
         run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         run: |

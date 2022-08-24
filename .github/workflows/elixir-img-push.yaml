@@ -10,9 +10,6 @@ on:
       img-name:
         required: true
         type: string
-      github-run-id:
-        required: true
-        type: string
       path-docker-file:
         required: true
         type: string

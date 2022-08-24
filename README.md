@@ -18,3 +18,10 @@
     - app-tag
 
 NOTE: [Using outputs from a reusable workflow](https://docs.github.com/en/actions/using-workflows/reusing-workflows#using-outputs-from-a-reusable-workflow)
+
+
+
+build-test
+
+main, docker-push-dev return app-id?
+*.*.* docker-push-prd return app-id?

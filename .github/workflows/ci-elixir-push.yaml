@@ -85,8 +85,7 @@ jobs:
           mix deps.get
       - name: Set tag env
         run: echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - id: setting app version
-        name: Set output
+      - name: Setting app version
         run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         # we pass --build-arg flags using mix task too

@@ -143,6 +143,8 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
+      - name: Flush console.logs
+        run: echo "DISCARD_LOGS=$(mix get_tag)"
       - name: Set tag env
         run: |
           mix get_tag

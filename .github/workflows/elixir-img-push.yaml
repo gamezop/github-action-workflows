@@ -87,7 +87,8 @@ jobs:
         run: |
           mix get_tag
           echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - name: Setting app version
+      - id: pushing-img
+        name: Setting app version
         run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         # we pass --build-arg flags using mix task too
@@ -149,7 +150,8 @@ jobs:
         run: |
           mix get_tag
           echo "APP_VERSION_TAG=$(mix get_tag)" >> $GITHUB_ENV
-      - name: Setting app version
+      - id: pushing-img
+        name: Setting app version
         run: echo "::set-output name=app-version::${{ env.APP_VERSION_TAG }}"
       - name: Push
         run: |

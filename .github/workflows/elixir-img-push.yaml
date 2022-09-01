@@ -2,7 +2,7 @@ on:
   workflow_call:
     inputs:
       mix-env:
-        required: true
+        required: false
         type: string
       mix-app-name:
         required: true
@@ -26,7 +26,6 @@ on:
         value: ${{ jobs.push_dev_img.outputs.app-version }}
 
 env:
-  MIX_ENV: ${{ inputs.mix-env }}
   GITHUB_ACCESS_TOKEN: ${{ secrets.GO_MODULES_GITHUB_TOKEN }}
 
 jobs:
@@ -93,6 +92,8 @@ jobs:
               --release
   push_dev_img:
     name: push_dev_img
+    env:
+      MIX_ENV: dev
     runs-on: ubuntu-20.04
     strategy:
       matrix:

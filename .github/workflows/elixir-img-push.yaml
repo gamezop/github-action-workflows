@@ -1,9 +1,6 @@
 on:
   workflow_call:
     inputs:
-      mix-env:
-        required: false
-        type: string
       mix-app-name:
         required: true
         type: string

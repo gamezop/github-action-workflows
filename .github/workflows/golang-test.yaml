@@ -43,7 +43,7 @@ jobs:
           path: ./go/src/github.com/${{ github.repository }}
       - name: Log in to Docker Hub
         if: ${{ inputs.test_docker_compose_path != '' }}
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}

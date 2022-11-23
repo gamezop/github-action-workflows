@@ -9,6 +9,10 @@ on:
         type: boolean
         required: false
         default: true
+      run_docker_login:
+        type: boolean
+        required: false
+        default: true
       test_docker_compose_path:
         required: false
         type: string
@@ -42,7 +46,7 @@ jobs:
           fetch-depth: 1
           path: ./go/src/github.com/${{ github.repository }}
       - name: Log in to Docker Hub
-        if: ${{ inputs.test_docker_compose_path != '' }}
+        if: ${{ inputs.test_docker_compose_path != '' && inputs.run_docker_login }}
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}

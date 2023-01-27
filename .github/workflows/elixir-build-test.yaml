@@ -41,7 +41,7 @@ jobs:
           docker-compose -f "${{ inputs.test_docker_compose_path }}" up -d --build
         shell: bash
       - name: Set up Elixir
-        uses: actions/setup-elixir@v1
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{matrix.elixir}} # Define the elixir version [required]
           otp-version: ${{matrix.otp}} # Define the OTP version [required]

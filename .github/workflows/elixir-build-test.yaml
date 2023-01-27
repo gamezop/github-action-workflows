@@ -22,7 +22,7 @@ env:
 jobs:
   build_test:
     name: Build and test
-    runs-on: ubuntu-20.04
+    runs-on: selfhosted-arm-runner
     strategy:
       matrix:
         elixir: [1.13.4]

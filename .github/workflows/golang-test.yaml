@@ -89,7 +89,7 @@ jobs:
       - name: prepare golang-bin-cache
         if: steps.golang-bin-cache.outputs.cache-hit != 'true'
         run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go install honnef.co/go/tools/cmd/staticcheck
         # alternative is golangci-lint
         # 💡 shows only a few annotations, if there are thousands
       # - name: revive

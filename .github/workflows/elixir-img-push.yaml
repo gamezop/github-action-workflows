@@ -34,12 +34,12 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        elixir: [1.13.4]
-        otp: [24.0]
+        elixir: ['1.13.4']
+        otp: ['24.0']
     outputs:
       app-version: ${{ steps.pushing-img.outputs.app-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
@@ -48,7 +48,7 @@ jobs:
       - name: Set env
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       - name: Set up Elixir
-        uses: actions/setup-elixir@v1
+        uses: erlef/setup-beam@v1
         with:
           elixir-version: ${{matrix.elixir}} # Define the elixir version [required]
           otp-version: ${{matrix.otp}} # Define the OTP version [required]

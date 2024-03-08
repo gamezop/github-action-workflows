@@ -7,6 +7,14 @@ on:
       flag_test_coverage:
         required: false
         type: boolean
+      elixer_version:
+        type: string
+        required: false
+        default: 1.16.1
+      otp_version:
+        type: string
+        required: false 
+        default: 24.0
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -25,8 +33,9 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        elixir: ['1.13.4']
-        otp: ['24.0']
+        elixir: ${{ inputs.elixer_version }}
+        otp: ${{ inputs.otp_version }}
+
     steps:
       - uses: actions/checkout@v3
       - name: Log in to Docker Hub

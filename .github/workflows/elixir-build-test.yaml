@@ -31,14 +31,6 @@ jobs:
   build_test:
     name: Build and test
     runs-on: ubuntu-20.04
-<<<<<<< HEAD
-    strategy:
-      matrix:
-        elixir: [ ${{ inputs.elixir_version }} ]
-        otp: [ ${{ inputs.otp_version }} ]
-
-=======
->>>>>>> origin/main
     steps:
       - uses: actions/checkout@v3
       - name: Log in to Docker Hub

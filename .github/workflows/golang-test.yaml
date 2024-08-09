@@ -58,7 +58,7 @@ jobs:
       - name: Stackup
         if: ${{ inputs.test_docker_compose_path != '' }}
         run: |
-          docker-compose -f "${{ inputs.test_docker_compose_path }}" up -d --build
+          docker compose -f "${{ inputs.test_docker_compose_path }}" up -d --build
         shell: bash
       - name: set up cache env paths
         id: go-cache-paths
@@ -109,4 +109,4 @@ jobs:
       - name: Stop containers
         if: ${{ (failure() || success()) &&  inputs.test_docker_compose_path != '' }}
         run: |
-          docker-compose -f "${{ inputs.test_docker_compose_path }}" down
+          docker compose -f "${{ inputs.test_docker_compose_path }}" down

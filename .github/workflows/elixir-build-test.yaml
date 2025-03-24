@@ -10,11 +10,11 @@ on:
       elixir_version:
         type: string
         required: false
-        default: '1.13.4'
+        default: '1.18.2'
       otp_version:
         type: string
         required: false 
-        default: '24.0'
+        default: '27.0'
     secrets:
       DOCKER_HUB_USERNAME:
         required: true

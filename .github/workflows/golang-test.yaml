@@ -68,20 +68,20 @@ jobs:
           echo "::set-output name=go-bin::$GOPATH/bin"
       - name: Go Mod Cache
         id: golang-lib-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-cache-paths.outputs.go-mod }}
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
       - name: Go bin Cache
         id: golang-bin-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-cache-paths.outputs.go-bin }}
           key: ${{ runner.os }}-go-bin-v1-${{ hashFiles('*') }} # change v1 to invalidate cache when adding bin
       # Cache go build cache, used to speedup go test
       - name: Go Build Cache
         id: golang-build-cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ${{ steps.go-cache-paths.outputs.go-build }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}

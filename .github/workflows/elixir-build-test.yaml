@@ -10,11 +10,11 @@ on:
       elixir_version:
         type: string
         required: false
-        default: '1.13.4'
+        default: "1.13.4"
       otp_version:
         type: string
-        required: false 
-        default: '24.0'
+        required: false
+        default: "24.0"
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -30,7 +30,7 @@ env:
 jobs:
   build_test:
     name: Build and test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - name: Log in to Docker Hub

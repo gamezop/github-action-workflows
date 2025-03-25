@@ -13,11 +13,11 @@ on:
       elixir_version:
         type: string
         required: false
-        default: '1.13.4'
+        default: "1.13.4"
       otp_version:
         type: string
-        required: false 
-        default: '24.0'
+        required: false
+        default: "24.0"
     secrets:
       DOCKER_HUB_USERNAME:
         required: true
@@ -39,7 +39,7 @@ jobs:
     env:
       MIX_ENV: prod
     if: startsWith(github.event.ref, 'refs/tags/')
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       app-version: ${{ steps.pushing-img.outputs.app-version }}
     steps:
@@ -95,7 +95,7 @@ jobs:
     name: push_dev_img
     env:
       MIX_ENV: dev
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     outputs:
       app-version: ${{ steps.pushing-img.outputs.app-version }}
     steps:

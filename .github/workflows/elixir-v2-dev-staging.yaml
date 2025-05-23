@@ -6,9 +6,6 @@ on:
       env:
         required: true
         type: string
-      mix-app-name:
-        required: true
-        type: string
       img-name:
         required: true
         type: string

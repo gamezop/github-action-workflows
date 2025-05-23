@@ -1,0 +1,67 @@
+name: Elixir Image Push (Dev/Staging)
+
+on:
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+      mix-app-name:
+        required: true
+        type: string
+      img-name:
+        required: true
+        type: string
+      path-docker-file:
+        required: true
+        type: string
+      elixir_version:
+        type: string
+        required: false
+        default: "1.13.4"
+      otp_version:
+        type: string
+        required: false
+        default: "24.0"
+    secrets:
+      DOCKER_HUB_USERNAME:
+        required: true
+      DOCKER_HUB_ACCESS_TOKEN:
+        required: true
+      GO_MODULES_GITHUB_TOKEN:
+        required: true
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+    env:
+      MIX_ENV: ${{ inputs.env }}
+      GITHUB_ACCESS_TOKEN: ${{ secrets.GO_MODULES_GITHUB_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup BEAM
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ inputs.otp_version }}
+          elixir-version: ${{ inputs.elixir_version }}
+
+      - name: Install dependencies
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix deps.get
+
+      - name: Compile
+        run: mix deps.compile
+
+      - name: Docker login
+        run: echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
+      - name: Build and push Docker image
+        run: |
+          mix release.image_build \
+            --img-name ${{ inputs.img-name }} \
+            --path-docker-file ${{ inputs.path-docker-file }} \
+            --github-run-id ${{ github.run_id }}

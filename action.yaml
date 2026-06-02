@@ -47,6 +47,7 @@ runs:
         repository: 'gamezop/gamezop-k8s'
         ssh-key: ${{ inputs.ssh_key }}
         path: 'gamezop-k8s-repo'
+        fetch-depth: 1
 
     - name: Update Manifest and Push with Retry Loop
       shell: bash

@@ -1,0 +1,102 @@
+name: 'K8s Manifest Deployer'
+description: 'Updates K8s manifest image tag'
+inputs:
+  image_tag:
+    description: 'The Docker image tag to update'
+    required: true
+  deploy_file_path:
+    description: 'Path to the deploy.yml file inside the k8s repo'
+    required: true
+  ssh_key:
+    description: 'SSH Private Key with write access to the k8s repo'
+    required: true
+  env:
+    description: 'Deployment environment (e.g., dev, staging, prod)'
+    required: false
+  service_name:
+    description: 'Name of the service to update in the manifest'
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup SSH Client and yq
+      shell: bash
+      run: |
+        if [ -f /etc/debian_version ]; then
+          echo "Debian/Ubuntu detected. Installing openssh-client..."
+          sudo apt-get update && sudo apt-get install -y openssh-client
+        elif [ -f /etc/alpine-release ]; then
+          echo "Alpine detected. Installing openssh-client..."
+          apk add --no-cache openssh-client
+        else
+          echo "Unknown OS. Attempting fallback installation..."
+          yum install -y openssh-clients || sudo yum install -y openssh-clients || true
+        fi
+
+        # detect architecture
+        [[ "$(uname -m)" == "x86_64" ]] && PLATFORM="linux_amd64" || PLATFORM="linux_arm64"
+
+        # Download yq v4 binary
+        sudo curl -L "https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_${PLATFORM}" -o /usr/local/bin/yq
+        sudo chmod +x /usr/local/bin/yq
+
+    - name: Checkout Argo K8s Repo
+      uses: actions/checkout@v4
+      with:
+        repository: 'gamezop/gamezop-k8s'
+        ssh-key: ${{ inputs.ssh_key }}
+        path: 'gamezop-k8s-repo'
+
+    - name: Update Manifest and Push with Retry Loop
+      shell: bash
+      run: |
+        cd gamezop-k8s-repo
+        
+        MAX_RETRIES=5
+        COUNT=0
+        SLEEP_TIME=4
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+
+        while [ $COUNT -lt $MAX_RETRIES ]; do
+          echo "Syncing manifest repo (Attempt $((COUNT+1))/$MAX_RETRIES)..."
+          
+          # Fetch the latest changes to minimize conflicts.
+          # This is crucial in a retry loop.
+          git fetch origin main
+          
+          # Reset to the latest main to minimize chances of push conflicts
+          git reset --hard origin/main
+          
+          # Target your specific container array and append the new tag
+          yq e "(.spec.template.spec.containers[] | select(.name == \"${{ inputs.service_name }}\")).image = \"gamezop/${{ inputs.service_name }}:${{ inputs.image_tag }}\"" -i "${{ inputs.deploy_file_path }}"
+          
+          git add "${{ inputs.deploy_file_path }}"
+          
+          # Check if there are any changes to commit. If not, exit early.
+          if git diff-index --quiet HEAD; then
+            echo "Manifest already matches this build tag. Exiting."
+            exit 0
+          fi
+          
+          git commit -m "chore(${{ inputs.env }}): update ${{ inputs.service_name }} image tag to ${{ inputs.image_tag }}"
+          
+          if git push origin main; then
+            echo "Successfully updated deployment manifest!"
+            exit 0
+          else
+            echo "Push rejected due to concurrent write. Retrying..."
+            
+            BACKOFF_WINDOW=$(( 2 ** COUNT ))
+            JITTER=$(( RANDOM % BACKOFF_WINDOW ))
+            TOTAL_SLEEP=$(( SLEEP_TIME + JITTER ))
+
+            echo "Retrying in $TOTAL_SLEEP seconds (Jitter window: 0-$BACKOFF_WINDOW)..."
+            sleep $TOTAL_SLEEP
+          fi
+        done
+
+        echo "Failed to push manifest updates after $MAX_RETRIES attempts."
+        exit 1

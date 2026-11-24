@@ -21,7 +21,11 @@ on:
       DOCKER_HUB_ACCESS_TOKEN:
         required: true
       GITHUB_ACCESS_TOKEN:
-        required: true
+        required: false
+      # Read-only deploy key for gamezop/gzp-common-ex (base64, one line). Callers using it
+      # must keep the plain HTTPS URL in mix.exs; git rewrites it to SSH below.
+      GZP_COMMON_EX_DEPLOY_KEY_B64:
+        required: false
 
 env:
   MIX_ENV: test
@@ -50,6 +54,16 @@ jobs:
           elixir-version: ${{ inputs.elixir_version }} # Define the elixir version [required]
           otp-version: ${{ inputs.otp_version }} # Define the OTP version [required]
           # experimental-otp: true
+      - name: Configure gzp-common-ex deploy key
+        env:
+          KEY_B64: ${{ secrets.GZP_COMMON_EX_DEPLOY_KEY_B64 }}
+        run: |
+          [ -n "$KEY_B64" ] || exit 0
+          install -d -m 700 ~/.ssh
+          echo "$KEY_B64" | base64 -d > ~/.ssh/gzp_common_ex
+          chmod 600 ~/.ssh/gzp_common_ex
+          git config --global core.sshCommand "ssh -i ~/.ssh/gzp_common_ex -o IdentitiesOnly=yes"
+          git config --global url."git@github.com:gamezop/gzp-common-ex".insteadOf "https://github.com/gamezop/gzp-common-ex"
       - name: Retrieve Mix dependencies Cache
         uses: actions/cache@v3
         id: mix-cache
@@ -75,6 +89,7 @@ jobs:
       - name: Reconcile deps
         run: |
           mix deps.get
+          rm -f ~/.ssh/gzp_common_ex # last fetch; keep the key away from credo/tests
       - name: Check Formatting
         run: mix format --check-formatted
       - name: Check Credo

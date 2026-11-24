@@ -20,13 +20,21 @@ on:
       test_docker_compose_path:
         required: false
         type: string
+      private_repos:
+        description: "Comma-separated gamezop repo names to fetch private Go modules from (jinbe = gzp-common-go). Uses a 1-hour read-only gamezop-ci-deps App token instead of GITHUB_ACCESS_TOKEN. PLAT-2596"
+        required: false
+        default: ""
+        type: string
     secrets:
       DOCKER_HUB_USERNAME:
         required: false
       DOCKER_HUB_ACCESS_TOKEN:
         required: false
       GITHUB_ACCESS_TOKEN:
-        required: true
+        required: false
+      GO_DEPS_APP_PRIVATE_KEY:
+        description: "gamezop-ci-deps App private key; required with private_repos"
+        required: false
 
 env:
   GOPATH: ${{ github.workspace }}/go
@@ -85,10 +93,35 @@ jobs:
         with:
           path: ${{ steps.go-cache-paths.outputs.go-build }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/go.sum') }}
+      # Strict check: a blank/comma-only list would make the App mint a token for every repo.
+      - name: Validate private_repos
+        if: ${{ inputs.private_repos != '' && steps.golang-lib-cache.outputs.cache-hit != 'true' }}
+        env:
+          REPOS: ${{ inputs.private_repos }}
+        run: |
+          [[ "$REPOS" =~ ^[A-Za-z0-9._-]+(,[A-Za-z0-9._-]+)*$ ]] || { echo "::error::private_repos must be comma-separated repo names (no spaces), got: '$REPOS'"; exit 1; }
+      - name: Mint read-only token for private repos
+        id: deps_token
+        if: ${{ inputs.private_repos != '' && steps.golang-lib-cache.outputs.cache-hit != 'true' }}
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          client-id: Iv23li9MIYyyUicJwmPx # gamezop-ci-deps (App ID 5903182)
+          private-key: ${{ secrets.GO_DEPS_APP_PRIVATE_KEY }}
+          owner: gamezop
+          repositories: ${{ inputs.private_repos }}
+          permission-contents: read
       - name: prepare golang-lib-cache
         if: steps.golang-lib-cache.outputs.cache-hit != 'true'
+        env:
+          APP_TOKEN: ${{ steps.deps_token.outputs.token }}
+          GITHUB_ACCESS_TOKEN: ${{ inputs.private_repos == '' && secrets.GITHUB_ACCESS_TOKEN || '' }}
         run: |
-          git config --global url."https://${{ secrets.GITHUB_ACCESS_TOKEN }}:x-oauth-basic@github.com".insteadOf "https://github.com"
+          if [ -n "$APP_TOKEN" ]; then
+            # Env-only rewrite for this step; nothing written to git config.
+            export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="url.https://x-access-token:${APP_TOKEN}@github.com/gamezop/.insteadOf" GIT_CONFIG_VALUE_0="https://github.com/gamezop/"
+          else
+            git config --global url."https://${GITHUB_ACCESS_TOKEN}:x-oauth-basic@github.com".insteadOf "https://github.com"
+          fi
           go mod vendor
       - name: prepare golang-bin-cache
         if: steps.golang-bin-cache.outputs.cache-hit != 'true'
